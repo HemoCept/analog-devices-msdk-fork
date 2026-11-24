@@ -76,8 +76,8 @@ void prvTimerCallback(TimerHandle_t xTimer)
     WsfTaskSetReady(handler, WSF_TIMER_EVENT);
     firedTimer->wsfTimerStruct->isStarted = FALSE;
   } else {
-    /* Timer not found */
-    WSF_ASSERT(0);
+    /* Timer not found: stopped after it expired but before this callback ran.
+       Dropping the expiry is what the stop asked for. */
   }
   WsfCsExit();
 }
@@ -158,9 +158,9 @@ void WsfTimerStop(wsfTimer_t *pTimer)
     if (prev) {
       prev->next = next;
     } else {
-      /* Removing head */
-      s_timers.head = NULL;
-      s_timers.tail = NULL;
+      /* Removing head: the rest of the list stays (was orphaned and leaked,
+         see upstream analog-devices-msdk #1010). Tail is updated below. */
+      s_timers.head = next;
     }
     if (next) {
       next->prev = prev;
